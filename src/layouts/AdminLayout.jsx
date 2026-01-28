@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, LogOut } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const AdminLayout = ({ children }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     // Simple check for simulation
     const isAuthenticated = localStorage.getItem('isAdmin');
@@ -13,35 +15,65 @@ const AdminLayout = ({ children }) => {
         return null;
     }
 
-    return (
-        <div className="min-h-screen bg-slate-100 flex">
-            <aside className="w-64 bg-white border-r border-slate-200 sticky top-0 h-screen">
-                <div className="p-6">
-                    <div className="flex items-center gap-4 mb-8">
-                        <img src="/Logo-Gica.png" alt="Logo" className="w-12 h-12 object-contain" />
-                        <div className="h-8 w-px bg-slate-200"></div>
-                        <span className="font-bold text-lg">{t('brand.name')}</span>
-                    </div>
+    const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-                    <nav className="space-y-2">
-                        <Link to="/admin" className="flex items-center gap-3 p-3 bg-primary-50 text-primary-700 rounded-lg font-medium">
-                            <LayoutDashboard className="w-5 h-5" /> {t('adminLayout.dashboard')}
-                        </Link>
-                        <button
-                            onClick={() => {
-                                localStorage.removeItem('isAdmin');
-                                window.dispatchEvent(new Event('admin-auth-changed'));
-                                navigate('/admin', { replace: true });
-                            }}
-                            className="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-                        >
-                            <LogOut className="w-5 h-5" /> {t('adminLayout.logout')}
-                        </button>
-                    </nav>
+    return (
+        <div className="min-h-screen bg-slate-100 flex flex-col lg:flex-row">
+            {/* Mobile Header */}
+            <header className="lg:hidden bg-white border-b border-slate-200 p-4 sticky top-0 z-50 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <img src="/Logo-Gica.png" alt="Logo" className="w-8 h-8 object-contain" />
+                    <span className="font-bold text-slate-900">{t('brand.name')}</span>
+                </div>
+                <button onClick={toggleMenu} className="p-2 text-slate-600 hover:bg-slate-50 rounded-lg">
+                    {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                </button>
+            </header>
+
+            {/* Sidebar / Mobile Menu */}
+            <aside className={`
+                fixed inset-0 z-40 lg:static lg:block
+                ${isMenuOpen ? 'block' : 'hidden'}
+            `}>
+                {/* Backdrop */}
+                <div
+                    className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm lg:hidden"
+                    onClick={() => setIsMenuOpen(false)}
+                ></div>
+
+                <div className="relative w-64 bg-white border-r border-slate-200 h-screen lg:sticky lg:top-0 overflow-y-auto">
+                    <div className="p-6">
+                        <div className="hidden lg:flex items-center gap-4 mb-8">
+                            <img src="/Logo-Gica.png" alt="Logo" className="w-12 h-12 object-contain" />
+                            <div className="h-8 w-px bg-slate-200"></div>
+                            <span className="font-bold text-lg">{t('brand.name')}</span>
+                        </div>
+
+                        <nav className="space-y-2">
+                            <Link
+                                to="/admin"
+                                onClick={() => setIsMenuOpen(false)}
+                                className="flex items-center gap-3 p-3 bg-primary-50 text-primary-700 rounded-lg font-medium"
+                            >
+                                <LayoutDashboard className="w-5 h-5" /> {t('adminLayout.dashboard')}
+                            </Link>
+                            <button
+                                onClick={() => {
+                                    localStorage.removeItem('isAdmin');
+                                    window.dispatchEvent(new Event('admin-auth-changed'));
+                                    navigate('/admin', { replace: true });
+                                    setIsMenuOpen(false);
+                                }}
+                                className="w-full flex items-center gap-3 p-3 text-slate-600 hover:bg-slate-50 rounded-lg transition-colors text-left"
+                            >
+                                <LogOut className="w-5 h-5" /> {t('adminLayout.logout')}
+                            </button>
+                        </nav>
+                    </div>
                 </div>
             </aside>
 
-            <main className="flex-grow p-8">
+            <main className="flex-grow p-4 md:p-8">
                 {children}
             </main>
         </div>

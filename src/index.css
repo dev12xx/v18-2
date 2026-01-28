@@ -10,6 +10,47 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
+@media print {
+  @page {
+    size: A4;
+    margin: 18mm 16mm;
+  }
+
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #print-area,
+  #print-area * {
+    visibility: visible;
+  }
+
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+}
+
+.print-only {
+  display: none;
+}
+
 .glass {
   @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
 }

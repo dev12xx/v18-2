@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Eye, CheckCircle, XCircle, Clock, Trash2, AlertCircle, FileText } from 'lucide-react';
+import { Eye, CheckCircle, XCircle, Clock, AlertCircle, Printer } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import SubmissionDetailModal from '../components/SubmissionDetailModal';
 
 const AdminDashboard = () => {
     const { t } = useTranslation();
@@ -11,13 +12,6 @@ const AdminDashboard = () => {
     const loadSubmissions = () => {
         const data = JSON.parse(localStorage.getItem('submissions') || '[]');
         setSubmissions(data);
-        // Also update selected submission if it exists
-        if (selectedSubmission) {
-            const updatedSelected = data.find(s => s.id === selectedSubmission.id);
-            if (updatedSelected) {
-                setSelectedSubmission(updatedSelected);
-            }
-        }
     };
 
     useEffect(() => {
@@ -29,7 +23,7 @@ const AdminDashboard = () => {
 
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
-    }, [selectedSubmission]); // Depend on selectedSubmission to correctly update it inside loadSubmissions ref
+    }, []);
 
     const updateStatus = (id, newStatus) => {
         const updated = submissions.map(s => s.id === id ? { ...s, status: newStatus } : s);
@@ -79,13 +73,13 @@ const AdminDashboard = () => {
 
     return (
         <div>
-            <div className="flex justify-between items-end mb-8">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900">{t('adminDashboard.title')}</h1>
-                    <p className="text-slate-500">{t('adminDashboard.subtitle')}</p>
+                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{t('adminDashboard.title')}</h1>
+                    <p className="text-slate-500 text-sm md:text-base">{t('adminDashboard.subtitle')}</p>
                 </div>
 
-                <div className="flex gap-2 bg-white p-1 rounded-xl border border-slate-200">
+                <div className="flex flex-wrap gap-2 bg-white p-1 rounded-xl border border-slate-200">
                     {[
                         { id: 'all', label: t('adminDashboard.filters.all') },
                         { id: 'pending', label: t('adminDashboard.filters.pending') },
@@ -96,7 +90,7 @@ const AdminDashboard = () => {
                         <button
                             key={f.id}
                             onClick={() => setFilter(f.id)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all ${filter === f.id ? 'bg-primary-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
+                            className={`px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium capitalize transition-all ${filter === f.id ? 'bg-primary-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-50'
                                 }`}
                         >
                             {f.label}
@@ -143,9 +137,16 @@ const AdminDashboard = () => {
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-2">
                                             <button onClick={() => setSelectedSubmission(sub)} className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg" title={t('adminDashboard.actions.viewDetails')}><Eye className="w-5 h-5" /></button>
-                                            <button onClick={() => updateStatus(sub.id, 'Accepted')} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" title={t('adminDashboard.modal.accept')}><CheckCircle className="w-5 h-5" /></button>
-                                            <button onClick={() => updateStatus(sub.id, 'Declined')} className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg" title={t('adminDashboard.modal.decline')}><XCircle className="w-5 h-5" /></button>
-                                            <button onClick={() => deleteSubmission(sub.id)} className="p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-600 rounded-lg" title={t('adminDashboard.actions.delete')}><Trash2 className="w-5 h-5" /></button>
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedSubmission(sub);
+                                                    setTimeout(() => window.print(), 0);
+                                                }}
+                                                className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+                                                title={t('adminDashboard.modal.print')}
+                                            >
+                                                <Printer className="w-5 h-5" />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -161,107 +162,12 @@ const AdminDashboard = () => {
                 </div>
             </div>
 
-            {/* Detail Modal */}
-            {selectedSubmission && (
-                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="p-8 border-b border-slate-100 sticky top-0 bg-white z-10 flex justify-between items-center">
-                            <div>
-                                <h2 className="text-2xl font-bold text-slate-900">{t('adminDashboard.modal.title')}</h2>
-                                <p className="text-primary-600 font-mono font-bold">{selectedSubmission.id}</p>
-                            </div>
-                            <button onClick={() => setSelectedSubmission(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                                <XCircle className="w-8 h-8 text-slate-300" />
-                            </button>
-                        </div>
-
-                        <div className="p-8 space-y-8">
-                            <div className="grid md:grid-cols-2 gap-8">
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">{t('adminDashboard.modal.currentStatus')}</label>
-                                    <span className={`inline-flex items-center gap-1.5 font-bold px-3 py-1 rounded-full text-sm ${selectedSubmission.status === 'Accepted' ? 'bg-emerald-50 text-emerald-700' :
-                                        selectedSubmission.status === 'Declined' ? 'bg-rose-50 text-rose-700' :
-                                            selectedSubmission.status === 'Appeal' ? 'bg-primary-50 text-primary-700' : 'bg-amber-50 text-amber-700'
-                                        }`}>
-                                        {getStatusLabel(selectedSubmission.status, selectedSubmission.appealData)}
-                                    </span>
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 block">{t('adminDashboard.modal.submittedAt')}</label>
-                                    <p className="font-semibold text-slate-900">{selectedSubmission.dateSubmitted}</p>
-                                </div>
-                            </div>
-
-                            {selectedSubmission.status === 'Appeal' && selectedSubmission.appealData && (
-                                <div className="p-6 bg-primary-50 rounded-2xl border border-primary-100 border-l-4 border-l-primary-600">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <AlertCircle className="w-5 h-5 text-primary-600" />
-                                        <h3 className="font-bold text-primary-900">{t('adminDashboard.modal.appealDetailsTitle')}</h3>
-                                    </div>
-                                    <label className="text-xs font-bold text-primary-400 uppercase tracking-wider mb-2 block">{t('adminDashboard.modal.appealReason')}</label>
-                                    <p className="text-slate-800 leading-relaxed mb-4 italic">"{selectedSubmission.appealData.reason}"</p>
-                                    {selectedSubmission.appealData.evidence && (
-                                        <div>
-                                            <span className="text-xs font-bold text-primary-400 uppercase tracking-wider mb-2 block">{t('adminDashboard.modal.newEvidence')}</span>
-                                            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-primary-200 rounded-lg text-sm text-primary-700">
-                                                <FileText className="w-4 h-4" />
-                                                {selectedSubmission.appealData.evidence}
-                                            </div>
-                                        </div>
-                                    )}
-                                    <p className="text-[10px] text-primary-400 mt-4 text-right">{t('adminDashboard.modal.filedOn')} : {selectedSubmission.appealData.date}</p>
-                                </div>
-                            )}
-
-                            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">{t('adminDashboard.modal.factsDescription')}</label>
-                                <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">{selectedSubmission.description}</p>
-                                {selectedSubmission.evidence && (
-                                    <div className="mt-4 pt-4 border-t border-slate-200">
-                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">{t('adminDashboard.modal.originalAttachment')}</span>
-                                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-600">
-                                            <FileText className="w-4 h-4" />
-                                            {selectedSubmission.evidence}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="space-y-4 pt-4 border-t border-slate-100">
-                                <h3 className="font-bold text-slate-900">{t('adminDashboard.modal.contactInfo')}</h3>
-                                <div className="grid md:grid-cols-2 gap-4 text-sm">
-                                    {selectedSubmission.fullName && (
-                                        <div>
-                                            <span className="text-slate-400 block">{t('adminDashboard.modal.fullName')}</span>
-                                            <span className="font-semibold text-slate-700">{selectedSubmission.fullName}</span>
-                                        </div>
-                                    )}
-                                    {selectedSubmission.email && (
-                                        <div>
-                                            <span className="text-slate-400 block">{t('adminDashboard.modal.email')}</span>
-                                            <span className="font-semibold text-slate-700">{selectedSubmission.email}</span>
-                                        </div>
-                                    )}
-                                    {selectedSubmission.anonymous !== undefined && (
-                                        <div>
-                                            <span className="text-slate-400 block">{t('adminDashboard.modal.anonymity')}</span>
-                                            <span className="font-semibold text-slate-700">{selectedSubmission.anonymous ? t('adminDashboard.modal.yes') : t('adminDashboard.modal.no')}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 pt-6 border-t border-slate-100">
-                                <button onClick={() => updateStatus(selectedSubmission.id, 'Accepted')} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-colors">{t('adminDashboard.modal.accept')}</button>
-                                <button onClick={() => updateStatus(selectedSubmission.id, 'Declined')} className="flex-1 py-3 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 transition-colors">{t('adminDashboard.modal.decline')}</button>
-                                <button onClick={() => deleteSubmission(selectedSubmission.id)} className="px-4 py-3 bg-slate-100 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-xl transition-all">
-                                    <Trash2 className="w-6 h-6" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <SubmissionDetailModal
+                isOpen={!!selectedSubmission}
+                onClose={() => setSelectedSubmission(null)}
+                submission={selectedSubmission}
+                onUpdateStatus={updateStatus}
+            />
         </div>
     );
 };

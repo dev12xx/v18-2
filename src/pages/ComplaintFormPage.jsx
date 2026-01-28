@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ShieldCheck, Mail, Send, CheckCircle2, RefreshCw, Loader2 } from 'lucide-react';
+import { ShieldCheck, Mail, Send, CheckCircle2, RefreshCw, Loader2, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
@@ -42,7 +42,6 @@ const ComplaintFormPage = () => {
         supervisor: '',
         personsInvolved: '',
         schbDepartment: '',
-        followUp: false,
         evidence: null,
     });
 
@@ -115,6 +114,13 @@ const ComplaintFormPage = () => {
 
     // ID State
     const [submissionId, setSubmissionId] = useState('');
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(submissionId);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
@@ -471,19 +477,6 @@ const ComplaintFormPage = () => {
                                     <div className="space-y-4">
 
 
-                                        {type === 'employee' && (
-                                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                                                <label className="flex items-center gap-3 cursor-pointer">
-                                                    <input
-                                                        type="checkbox"
-                                                        className="w-5 h-5 accent-primary-600"
-                                                        checked={formData.followUp}
-                                                        onChange={(e) => setFormData({ ...formData, followUp: e.target.checked })}
-                                                    />
-                                                    <span className="font-medium text-slate-700">{t('complaint.fields.followUp')}</span>
-                                                </label>
-                                            </div>
-                                        )}
                                     </div>
 
                                     <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2">
@@ -509,9 +502,21 @@ const ComplaintFormPage = () => {
                                     {t('complaint.steps.submittedSubtitle')}
                                 </p>
 
-                                <div className="bg-primary-50 p-6 rounded-2xl border border-primary-100 mb-8 inline-block px-12">
+                                <div className="bg-primary-50 p-6 rounded-2xl border border-primary-100 mb-6 inline-block w-full max-w-sm">
                                     <p className="text-primary-700 text-sm font-bold uppercase tracking-wider mb-2">{t('complaint.steps.referenceId')}</p>
-                                    <p className="text-3xl font-mono font-black text-primary-900">{submissionId}</p>
+                                    <div className="flex items-center justify-center gap-3">
+                                        <p className="text-2xl sm:text-3xl font-mono font-black text-primary-900">{submissionId}</p>
+                                        <button
+                                            onClick={handleCopy}
+                                            className={`p-2 rounded-lg transition-all ${copied ? 'bg-emerald-100 text-emerald-600' : 'bg-white text-primary-600 hover:bg-primary-100 shadow-sm border border-primary-200'}`}
+                                            title={t('complaint.steps.copy')}
+                                        >
+                                            {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                                        </button>
+                                    </div>
+                                    <p className="mt-4 text-xs font-semibold text-primary-600 bg-white/50 py-2 px-3 rounded-lg border border-primary-100">
+                                        {t('complaint.steps.saveReferenceNote')}
+                                    </p>
                                 </div>
 
                                 <div className="space-y-4">
