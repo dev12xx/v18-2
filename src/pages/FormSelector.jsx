@@ -1,37 +1,39 @@
 import { useNavigate } from 'react-router-dom';
 import { Users, Building, Globe, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const FormSelector = () => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     const options = [
         {
             id: 'client',
-            title: 'Client / Citoyen',
+            title: t('formSelector.options.clientTitle'),
             icon: <Users className="w-8 h-8" />,
             color: 'text-blue-600',
             bg: 'bg-blue-50',
             border: 'border-blue-100',
-            desc: 'Pour signaler la corruption dans les services publics ou les relations clients.'
+            desc: t('formSelector.options.clientDesc')
         },
         {
             id: 'employee',
-            title: 'Employé / Interne',
+            title: t('formSelector.options.employeeTitle'),
             icon: <Building className="w-8 h-8" />,
             color: 'text-emerald-600',
             bg: 'bg-emerald-50',
             border: 'border-emerald-100',
-            desc: 'Signalement sécurisé pour les employés au sein d\'une organisation.'
+            desc: t('formSelector.options.employeeDesc')
         },
         {
             id: 'external',
-            title: 'Partenaire Externe',
+            title: t('formSelector.options.externalTitle'),
             icon: <Globe className="w-8 h-8" />,
             color: 'text-amber-600',
             bg: 'bg-amber-50',
             border: 'border-amber-100',
-            desc: 'Pour les fournisseurs, prestataires ou tout tiers externe.'
+            desc: t('formSelector.options.externalDesc')
         }
     ];
 
@@ -39,8 +41,8 @@ const FormSelector = () => {
         <div className="py-20 bg-slate-50 min-h-screen">
             <div className="max-w-4xl mx-auto px-4">
                 <div className="text-center mb-16">
-                    <h1 className="text-4xl font-bold text-slate-900 mb-4">Commencez votre signalement</h1>
-                    <p className="text-slate-600">Veuillez sélectionner la catégorie qui décrit le mieux votre situation.</p>
+                    <h1 className="text-4xl font-bold text-slate-900 mb-4">{t('formSelector.title')}</h1>
+                    <p className="text-slate-600">{t('formSelector.subtitle')}</p>
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-8">
@@ -59,7 +61,7 @@ const FormSelector = () => {
                             <p className="text-slate-600 text-sm leading-relaxed mb-6 flex-grow">{opt.desc}</p>
 
                             <div className="w-full pt-4 border-t border-slate-50 flex items-center justify-center gap-2 text-primary-600 font-semibold group-hover:translate-x-1 transition-transform">
-                                Continuer <ChevronRight className="w-4 h-4" />
+                                {t('formSelector.continue')} <ChevronRight className="w-4 h-4" />
                             </div>
                         </motion.button>
                     ))}

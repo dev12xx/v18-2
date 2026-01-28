@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ShieldCheck, Mail, Send, CheckCircle2, RefreshCw, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const ComplaintFormPage = () => {
     const { type } = useParams();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const [step, setStep] = useState(1); // 1: Charter, 2: Email/Captcha, 3: Form, 4: Success
     const [loading, setLoading] = useState(false);
 
@@ -27,13 +29,41 @@ const ComplaintFormPage = () => {
         subject: '',
         description: '',
         location: '',
-        date: '',
+        incidentDate: '',
         anonymous: true,
-        name: '',
+        fullName: '',
+        company: '',
         phone: '',
-        department: '', // For employee
-        relationship: '', // For external
+        orderNumber: '',
+        department: '',
+        relationType: '',
+        employeeId: '',
+        position: '',
+        supervisor: '',
+        personsInvolved: '',
+        schbDepartment: '',
+        followUp: false,
+        evidence: null,
     });
+
+    const sanitizeName = (value) => value.replace(/[^\p{L} \-']/gu, '');
+
+    const sanitizePhone = (value) => {
+        const cleaned = value.replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '');
+        return cleaned;
+    };
+
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setFormData({ ...formData, evidence: e.target.files[0].name });
+        }
+    };
+
+    const getTypeLabel = () => {
+        if (type === 'client') return t('complaint.types.client');
+        if (type === 'employee') return t('complaint.types.employee');
+        return t('complaint.types.external');
+    };
 
     useEffect(() => {
         generateCaptcha();
@@ -83,14 +113,18 @@ const ComplaintFormPage = () => {
         }
     };
 
+    // ID State
+    const [submissionId, setSubmissionId] = useState('');
+
     const handleFormSubmit = (e) => {
         e.preventDefault();
         setLoading(true);
         setTimeout(() => {
             const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
+            const newId = `REF-${Math.floor(Math.random() * 9000) + 1000}`;
             const newSubmission = {
                 ...formData,
-                id: `REF-${Math.floor(Math.random() * 9000) + 1000}`,
+                id: newId,
                 type,
                 dateSubmitted: new Date().toISOString().split('T')[0],
                 status: 'Pending',
@@ -98,6 +132,7 @@ const ComplaintFormPage = () => {
             };
             submissions.push(newSubmission);
             localStorage.setItem('submissions', JSON.stringify(submissions));
+            setSubmissionId(newId);
             setStep(4);
             setLoading(false);
         }, 2000);
@@ -136,16 +171,16 @@ const ComplaintFormPage = () => {
                                     <div className="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                                         <ShieldCheck className="w-10 h-10" />
                                     </div>
-                                    <h2 className="text-2xl font-bold">Charte de Confidentialité</h2>
-                                    <p className="text-slate-600">Veuillez lire et accepter notre charte de confidentialité avant de continuer.</p>
+                                    <h2 className="text-2xl font-bold">{t('complaint.steps.confidentialityCharter')}</h2>
+                                    <p className="text-slate-600">{t('complaint.steps.charterSubtitle')}</p>
                                 </div>
 
                                 <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 mb-8 max-h-60 overflow-y-auto text-sm text-slate-600 leading-relaxed">
-                                    <p className="mb-4"><strong>Introduction</strong>: Cette charte de confidentialité explique comment nous traitons vos données lors de la soumission d'une plainte anti-corruption.</p>
-                                    <p className="mb-4"><strong>Anonymat</strong>: Nous garantissons votre anonymat si vous choisissez l'option de soumission anonyme. Vos données de connexion sont traitées avec la plus grande confidentialité.</p>
-                                    <p className="mb-4"><strong>Utilisation des données</strong>: Les informations fournies seront utilisées exclusivement à des fins d'enquête interne et ne seront jamais partagées avec des tiers sans votre consentement explicite, sauf obligation légale.</p>
-                                    <p className="mb-4"><strong>Sécurité</strong>: Nous utilisons des protocoles de sécurité avancés pour protéger vos informations contre tout accès non autorisé.</p>
-                                    <p>En acceptant cette charte, vous confirmez que les informations fournies sont sincères et exactes au mieux de votre connaissance.</p>
+                                    <p className="mb-4">{t('complaint.charter.intro')}</p>
+                                    <p className="mb-4">{t('complaint.charter.anonymity')}</p>
+                                    <p className="mb-4">{t('complaint.charter.dataUse')}</p>
+                                    <p className="mb-4">{t('complaint.charter.security')}</p>
+                                    <p>{t('complaint.charter.confirm')}</p>
                                 </div>
 
                                 <form onSubmit={handleCharterSubmit} className="space-y-6">
@@ -157,14 +192,14 @@ const ComplaintFormPage = () => {
                                             onChange={(e) => setCharterAccepted(e.target.checked)}
                                             required
                                         />
-                                        <span className="font-medium text-slate-700">J'ai lu et j'accepte la charte de confidentialité</span>
+                                        <span className="font-medium text-slate-700">{t('complaint.steps.acceptCharter')}</span>
                                     </label>
                                     <button
                                         type="submit"
                                         disabled={!charterAccepted}
                                         className="btn-primary w-full py-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        Continuer
+                                        {t('complaint.steps.continue')}
                                     </button>
                                 </form>
                             </motion.div>
@@ -182,26 +217,26 @@ const ComplaintFormPage = () => {
                                     <div className="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                                         <Mail className="w-10 h-10" />
                                     </div>
-                                    <h2 className="text-2xl font-bold">Vérification de Sécurité</h2>
-                                    <p className="text-slate-600">Veuillez fournir votre email et résoudre le captcha pour continuer.</p>
+                                    <h2 className="text-2xl font-bold">{t('complaint.steps.securityVerification')}</h2>
+                                    <p className="text-slate-600">{t('complaint.steps.emailCaptchaSubtitle')}</p>
                                 </div>
 
                                 {!sentOtp ? (
                                     <form onSubmit={handleEmailCaptchaSubmit} className="space-y-6">
                                         <div>
-                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Adresse Email</label>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.steps.emailLabel')}</label>
                                             <input
                                                 type="email"
                                                 required
                                                 value={email}
                                                 onChange={(e) => setEmail(e.target.value)}
                                                 className="input-field"
-                                                placeholder="votre@email.com"
+                                                placeholder={t('complaint.steps.emailPlaceholder')}
                                             />
                                         </div>
 
                                         <div className="space-y-4 pt-4 border-t border-slate-100">
-                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Sécurité (Captcha)</label>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.steps.captchaLabel')}</label>
                                             <div className="flex flex-col items-center gap-4">
                                                 <div className="flex items-center gap-4 bg-slate-100 p-6 rounded-2xl border-2 border-dashed border-slate-300 select-none w-full justify-center">
                                                     <span className="text-3xl font-mono font-bold tracking-[0.5em] text-slate-800 italic transform skew-x-12">
@@ -214,36 +249,36 @@ const ComplaintFormPage = () => {
 
                                                 <input
                                                     type="text"
-                                                    placeholder="Entrez les caractères"
+                                                    placeholder={t('complaint.steps.captchaInputPlaceholder')}
                                                     value={userInputCaptcha}
                                                     onChange={(e) => setUserInputCaptcha(e.target.value)}
                                                     className={`input-field text-center text-xl tracking-widest uppercase font-bold px-4 ${captchaError ? 'border-rose-500 ring-2 ring-rose-500/20' : ''}`}
                                                     required
                                                 />
-                                                {captchaError && <p className="text-rose-500 text-sm">Caractères incorrects. Réessayez.</p>}
+                                                {captchaError && <p className="text-rose-500 text-sm">{t('complaint.steps.captchaError')}</p>}
                                             </div>
                                         </div>
 
                                         <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 py-4 text-lg">
-                                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Envoyer le code de vérification'}
+                                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('complaint.steps.sendVerificationCode')}
                                         </button>
                                     </form>
                                 ) : (
                                     <form onSubmit={handleOtpVerify} className="space-y-6">
                                         <div>
-                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Code de Vérification (Entrez 123456)</label>
+                                            <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.steps.otpLabel')}</label>
                                             <input
                                                 type="text"
                                                 required
                                                 value={otp}
-                                                onChange={(e) => setOtp(e.target.value)}
+                                                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                                                 className="input-field text-center text-2xl tracking-[0.2em] font-bold"
-                                                placeholder="••••••"
+                                                placeholder={t('complaint.steps.otpPlaceholder')}
                                                 maxLength={6}
                                             />
                                         </div>
-                                        <button type="submit" className="btn-primary w-full py-4">Vérifier & Procéder</button>
-                                        <button type="button" onClick={() => setSentOtp('')} className="text-primary-600 w-full text-sm font-medium">Réinitialiser l'Email</button>
+                                        <button type="submit" className="btn-primary w-full py-4">{t('complaint.steps.verifyProceed')}</button>
+                                        <button type="button" onClick={() => setSentOtp('')} className="text-primary-600 w-full text-sm font-medium">{t('complaint.steps.resetEmail')}</button>
                                     </form>
                                 )}
                             </motion.div>
@@ -258,150 +293,201 @@ const ComplaintFormPage = () => {
                                 exit={{ opacity: 0, x: -20 }}
                             >
                                 <div className="mb-8">
-                                    <h2 className="text-2xl font-bold capitalize">Formulaire de Plainte - {type === 'client' ? 'Client' : type === 'employee' ? 'Employé' : 'Partenaire Externe'}</h2>
-                                    <p className="text-slate-600">Veuillez fournir autant de détails que possible pour aider notre enquête.</p>
+                                    <h2 className="text-2xl font-bold capitalize">{t('complaint.steps.formTitle')} - {getTypeLabel()}</h2>
+                                    <p className="text-slate-600">{t('complaint.steps.formSubtitle')}</p>
                                 </div>
 
                                 <form onSubmit={handleFormSubmit} className="space-y-6">
-                                    <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Objet</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            placeholder="ex: Processus d'appel d'offres déloyal"
-                                            className="input-field"
-                                            value={formData.subject}
-                                            onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                        />
-                                    </div>
 
-                                    <div className="grid md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Date de l'incident</label>
-                                            <input
-                                                type="date"
-                                                required
-                                                className="input-field"
-                                                value={formData.date}
-                                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Lieu</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder="Bureau / Nom du site"
-                                                className="input-field"
-                                                value={formData.location}
-                                                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                            />
-                                        </div>
-                                    </div>
 
+                                    {/* Client Form */}
                                     {type === 'client' && (
                                         <div className="grid md:grid-cols-2 gap-6">
                                             <div>
-                                                <label className="block text-sm font-semibold text-slate-700 mb-2">Nom complet</label>
-                                                <input
-                                                    type="text"
-                                                    required
-                                                    placeholder="ex: Jean Dupont"
-                                                    className="input-field"
-                                                    value={formData.name}
-                                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                />
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.fullName')}</label>
+                                                <input type="text" required className="input-field" placeholder={t('complaint.fields.fullNamePlaceholder')} value={formData.fullName} onChange={(e) => setFormData((prev) => ({ ...prev, fullName: sanitizeName(e.target.value) }))} />
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-semibold text-slate-700 mb-2">Numéro de téléphone</label>
-                                                <input
-                                                    type="tel"
-                                                    required
-                                                    placeholder="ex: +213..."
-                                                    className="input-field"
-                                                    value={formData.phone}
-                                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                                />
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.company')}</label>
+                                                <input type="text" className="input-field" placeholder={t('complaint.fields.companyPlaceholder')} value={formData.company} onChange={(e) => setFormData({ ...formData, company: e.target.value })} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.email')}</label>
+                                                <input type="email" readOnly className="input-field bg-slate-50 cursor-not-allowed" value={email} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.phone')}</label>
+                                                <input type="tel" inputMode="numeric" required className="input-field" placeholder={t('complaint.fields.phonePlaceholder')} value={formData.phone} onChange={(e) => setFormData((prev) => ({ ...prev, phone: sanitizePhone(e.target.value) }))} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.orderNumber')}</label>
+                                                <input type="text" className="input-field" placeholder={t('complaint.fields.orderNumberPlaceholder')} value={formData.orderNumber} onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.incidentDateTime')}</label>
+                                                <input type="datetime-local" required min="2026-01-01T00:00" className="input-field" value={formData.incidentDate} onChange={(e) => setFormData({ ...formData, incidentDate: e.target.value })} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.departmentConcerned')}</label>
+                                                <select className="input-field" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })}>
+                                                    <option value="">{t('complaint.fields.departmentSelect')}</option>
+                                                    <option value="commercial">{t('complaint.options.departmentsClient.commercial')}</option>
+                                                    <option value="finance">{t('complaint.options.departmentsClient.finance')}</option>
+                                                    <option value="logistique">{t('complaint.options.departmentsClient.logistique')}</option>
+                                                    <option value="autre">{t('complaint.options.departmentsClient.autre')}</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.relationType')}</label>
+                                                <select className="input-field" value={formData.relationType} onChange={(e) => setFormData({ ...formData, relationType: e.target.value })}>
+                                                    <option value="">{t('complaint.fields.relationTypeSelect')}</option>
+                                                    <option value="client-direct">{t('complaint.options.relationTypes.clientDirect')}</option>
+                                                    <option value="client-indirect">{t('complaint.options.relationTypes.clientIndirect')}</option>
+                                                    <option value="distributor">{t('complaint.options.relationTypes.distributor')}</option>
+                                                    <option value="retailer">{t('complaint.options.relationTypes.retailer')}</option>
+                                                    <option value="other">{t('complaint.options.relationTypes.other')}</option>
+                                                </select>
                                             </div>
                                         </div>
                                     )}
 
+                                    {/* Employee Form */}
                                     {type === 'employee' && (
-                                        <div>
-                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Votre Département</label>
-                                            <input
-                                                type="text"
-                                                placeholder="ex: IT, Finance"
-                                                className="input-field"
-                                                value={formData.department}
-                                                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                                            />
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.employeeId')}</label>
+                                                <input type="text" required className="input-field" placeholder={t('complaint.fields.employeeIdPlaceholder')} value={formData.employeeId} onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.professionalEmail')}</label>
+                                                <input type="email" readOnly className="input-field bg-slate-50 cursor-not-allowed" value={email} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.department')}</label>
+                                                <select className="input-field" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })}>
+                                                    <option value="">{t('complaint.fields.departmentSelect')}</option>
+                                                    <option value="rh">{t('complaint.options.departmentsEmployee.rh')}</option>
+                                                    <option value="it">{t('complaint.options.departmentsEmployee.it')}</option>
+                                                    <option value="production">{t('complaint.options.departmentsEmployee.production')}</option>
+                                                    <option value="maintenance">{t('complaint.options.departmentsEmployee.maintenance')}</option>
+                                                    <option value="finance">{t('complaint.options.departmentsEmployee.finance')}</option>
+                                                    <option value="autre">{t('complaint.options.departmentsEmployee.autre')}</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.position')}</label>
+                                                <input type="text" className="input-field" placeholder={t('complaint.fields.positionPlaceholder')} value={formData.position} onChange={(e) => setFormData({ ...formData, position: e.target.value })} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.supervisor')}</label>
+                                                <input type="text" className="input-field" placeholder={t('complaint.fields.supervisorPlaceholder')} value={formData.supervisor} onChange={(e) => setFormData((prev) => ({ ...prev, supervisor: sanitizeName(e.target.value) }))} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.incidentDateTime')}</label>
+                                                <input type="datetime-local" required min="2026-01-01T00:00" className="input-field" value={formData.incidentDate} onChange={(e) => setFormData({ ...formData, incidentDate: e.target.value })} />
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.location')}</label>
+                                                <input type="text" className="input-field" placeholder={t('complaint.fields.locationPlaceholder')} value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} />
+                                            </div>
+                                            <div className="md:col-span-2">
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.personsInvolved')}</label>
+                                                <input type="text" className="input-field" placeholder={t('complaint.fields.personsInvolvedPlaceholder')} value={formData.personsInvolved} onChange={(e) => setFormData((prev) => ({ ...prev, personsInvolved: sanitizeName(e.target.value) }))} />
+                                            </div>
                                         </div>
                                     )}
 
+                                    {/* External Form */}
                                     {type === 'external' && (
-                                        <div>
-                                            <label className="block text-sm font-semibold text-slate-700 mb-2">Relation avec l'organisation</label>
-                                            <select
-                                                className="input-field"
-                                                value={formData.relationship}
-                                                onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
-                                            >
-                                                <option value="">Sélectionnez une option</option>
-                                                <option value="supplier">Fournisseur</option>
-                                                <option value="contractor">Prestataire</option>
-                                                <option value="other">Autre</option>
-                                            </select>
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.fullName')}</label>
+                                                <input type="text" required className="input-field" placeholder={t('complaint.fields.fullNamePlaceholder')} value={formData.fullName} onChange={(e) => setFormData((prev) => ({ ...prev, fullName: sanitizeName(e.target.value) }))} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.email')}</label>
+                                                <input type="email" readOnly className="input-field bg-slate-50 cursor-not-allowed" value={email} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.phone')}</label>
+                                                <input type="tel" inputMode="numeric" className="input-field" placeholder={t('complaint.fields.phonePlaceholder')} value={formData.phone} onChange={(e) => setFormData((prev) => ({ ...prev, phone: sanitizePhone(e.target.value) }))} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.incidentDateTime')}</label>
+                                                <input type="datetime-local" required min="2026-01-01T00:00" className="input-field" value={formData.incidentDate} onChange={(e) => setFormData({ ...formData, incidentDate: e.target.value })} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.schbDepartment')}</label>
+                                                <select className="input-field" value={formData.schbDepartment} onChange={(e) => setFormData({ ...formData, schbDepartment: e.target.value })}>
+                                                    <option value="">{t('complaint.fields.departmentSelect')}</option>
+                                                    <option value="achats">{t('complaint.options.schbDepartmentsExternal.achats')}</option>
+                                                    <option value="logistique">{t('complaint.options.schbDepartmentsExternal.logistique')}</option>
+                                                    <option value="dg">{t('complaint.options.schbDepartmentsExternal.dg')}</option>
+                                                    <option value="autre">{t('complaint.options.schbDepartmentsExternal.autre')}</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.personsInvolved')}</label>
+                                                <input type="text" className="input-field" placeholder={t('complaint.fields.personsInvolvedPlaceholder')} value={formData.personsInvolved} onChange={(e) => setFormData((prev) => ({ ...prev, personsInvolved: sanitizeName(e.target.value) }))} />
+                                            </div>
                                         </div>
                                     )}
 
+                                    {/* Description (Common) */}
                                     <div>
-                                        <label className="block text-sm font-semibold text-slate-700 mb-2">Description</label>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.description')}</label>
                                         <textarea
                                             required
                                             rows={5}
-                                            placeholder="Décrivez l'incident en détail..."
+                                            placeholder={t('complaint.fields.descriptionPlaceholder')}
                                             className="input-field resize-none"
                                             value={formData.description}
                                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         ></textarea>
                                     </div>
 
-                                    {type !== 'client' && (
-                                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
-                                            <label className="flex items-center gap-3 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="w-5 h-5 accent-primary-600"
-                                                    checked={formData.anonymous}
-                                                    onChange={(e) => setFormData({ ...formData, anonymous: e.target.checked })}
-                                                />
-                                                <span className="font-medium text-slate-700">Soumettre anonymement</span>
-                                            </label>
-                                            {!formData.anonymous && (
-                                                <div className="mt-4 grid md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Votre Nom"
-                                                        className="input-field"
-                                                        required={!formData.anonymous}
-                                                        value={formData.name}
-                                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                    />
-                                                    <input
-                                                        type="tel"
-                                                        placeholder="Numéro de Téléphone"
-                                                        className="input-field"
-                                                        value={formData.phone}
-                                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                                    />
+                                    {/* File Evidence (Common) */}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-2">{t('complaint.fields.evidence')}</label>
+                                        <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-2xl hover:border-primary-400 transition-colors">
+                                            <div className="space-y-1 text-center">
+                                                <svg className="mx-auto h-12 w-12 text-slate-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                                <div className="flex text-sm text-slate-600">
+                                                    <label className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500">
+                                                        <span>{t('complaint.fields.uploadFile')}</span>
+                                                        <input type="file" className="sr-only" onChange={handleFileChange} />
+                                                    </label>
+                                                    <p className="pl-1">{t('complaint.fields.orDragDrop')}</p>
                                                 </div>
-                                            )}
+                                                <p className="text-xs text-slate-500">{t('complaint.fields.fileHint')}</p>
+                                                {formData.evidence && <p className="text-sm text-emerald-600 font-medium">{t('complaint.fields.selected')}: {formData.evidence}</p>}
+                                            </div>
                                         </div>
-                                    )}
+                                    </div>
+
+                                    {/* Conditional Anonymous Submission & Employee Follow-up */}
+                                    <div className="space-y-4">
+
+
+                                        {type === 'employee' && (
+                                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                                                <label className="flex items-center gap-3 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="w-5 h-5 accent-primary-600"
+                                                        checked={formData.followUp}
+                                                        onChange={(e) => setFormData({ ...formData, followUp: e.target.checked })}
+                                                    />
+                                                    <span className="font-medium text-slate-700">{t('complaint.fields.followUp')}</span>
+                                                </label>
+                                            </div>
+                                        )}
+                                    </div>
 
                                     <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2">
-                                        {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Send className="w-6 h-6" /> Envoyer le rapport</>}
+                                        {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <><Send className="w-6 h-6" /> {t('complaint.steps.submitReport')}</>}
                                     </button>
                                 </form>
                             </motion.div>
@@ -418,14 +504,14 @@ const ComplaintFormPage = () => {
                                 <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
                                     <CheckCircle2 className="w-12 h-12" />
                                 </div>
-                                <h2 className="text-3xl font-bold text-slate-900 mb-4">Rapport Soumis !</h2>
+                                <h2 className="text-3xl font-bold text-slate-900 mb-4">{t('complaint.steps.submittedTitle')}</h2>
                                 <p className="text-slate-600 mb-8 max-w-md mx-auto">
-                                    Merci pour votre courage. Votre rapport a été reçu et a reçu un identifiant de référence unique.
+                                    {t('complaint.steps.submittedSubtitle')}
                                 </p>
 
                                 <div className="bg-primary-50 p-6 rounded-2xl border border-primary-100 mb-8 inline-block px-12">
-                                    <p className="text-primary-700 text-sm font-bold uppercase tracking-wider mb-2">ID de Référence</p>
-                                    <p className="text-3xl font-mono font-black text-primary-900">REF-{Math.floor(Math.random() * 9000) + 1000}</p>
+                                    <p className="text-primary-700 text-sm font-bold uppercase tracking-wider mb-2">{t('complaint.steps.referenceId')}</p>
+                                    <p className="text-3xl font-mono font-black text-primary-900">{submissionId}</p>
                                 </div>
 
                                 <div className="space-y-4">
@@ -433,13 +519,13 @@ const ComplaintFormPage = () => {
                                         onClick={() => navigate('/track')}
                                         className="btn-primary w-full"
                                     >
-                                        Suivre le statut
+                                        {t('complaint.steps.trackStatus')}
                                     </button>
                                     <button
                                         onClick={() => navigate('/')}
                                         className="w-full text-slate-500 font-medium hover:text-slate-800 transition-colors"
                                     >
-                                        Retour à l'accueil
+                                        {t('complaint.steps.backHome')}
                                     </button>
                                 </div>
                             </motion.div>

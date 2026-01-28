@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, Shield, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 const AdminLogin = () => {
+    const { t } = useTranslation();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(false);
@@ -11,10 +13,12 @@ const AdminLogin = () => {
 
     const handleLogin = (e) => {
         e.preventDefault();
+        setError(false);
         // Simple mock logic
         if (username === 'admin' && password === 'admin') {
             localStorage.setItem('isAdmin', 'true');
-            navigate('/admin');
+            window.dispatchEvent(new Event('admin-auth-changed'));
+            navigate('/admin', { replace: true });
         } else {
             setError(true);
         }
@@ -36,55 +40,49 @@ const AdminLogin = () => {
                     <div className="w-24 h-24 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-4 p-4">
                         <img src="/Logo-Gica.png" alt="Logo" className="w-full h-full object-contain" />
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-900">Accès Administrateur</h1>
-                    <p className="text-slate-500">Entrez vos identifiants pour gérer les rapports</p>
+                    <h1 className="text-2xl font-bold text-slate-900">{t('adminLogin.title')}</h1>
+                    <p className="text-slate-500">{t('adminLogin.subtitle')}</p>
                 </div>
 
                 {error && (
                     <div className="mb-6 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl flex items-center gap-3">
                         <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                        <p className="text-sm font-medium">Nom d'utilisateur ou mot de passe invalide.</p>
+                        <p className="text-sm font-medium">{t('adminLogin.invalid')}</p>
                     </div>
                 )}
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Nom d'utilisateur</label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                required
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                className="input-field pr-12"
-                                placeholder="admin"
-                            />
-                            <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        </div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">{t('adminLogin.username')}</label>
+                        <input
+                            type="text"
+                            required
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            className="input-field"
+                            placeholder="admin"
+                        />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Mot de passe</label>
-                        <div className="relative">
-                            <input
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="input-field pr-12"
-                                placeholder="••••••••"
-                            />
-                            <Lock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        </div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">{t('adminLogin.password')}</label>
+                        <input
+                            type="password"
+                            required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="input-field"
+                            placeholder="••••••••"
+                        />
                     </div>
 
                     <button type="submit" className="btn-primary w-full py-4 text-lg">
-                        Se connecter
+                        {t('adminLogin.login')}
                     </button>
                 </form>
 
                 <p className="text-center text-slate-400 text-sm mt-8">
-                    Personnel autorisé uniquement. Tous les accès sont journalisés.
+                    {t('adminLogin.authorizedOnly')}
                 </p>
             </motion.div>
         </div>
